@@ -69,9 +69,9 @@ func socketAddress(addr net.Addr) (sockaddr, error) {
 		return &sockaddrUnix{name: a.Name}, nil
 	}
 	if ipv4 := ip.To4(); ipv4 != nil {
-		return &sockaddrInet4{addr: ([4]byte)(ipv4), port: uint32(port)}, nil
+		return &sockaddrInet4{kind: AF_INET, addr: ([4]byte)(ipv4), port: uint32(port)}, nil
 	} else if len(ip) == net.IPv6len {
-		return &sockaddrInet6{addr: ([16]byte)(ip), port: uint32(port)}, nil
+		return &sockaddrInet6{kind: AF_INET6, addr: ([16]byte)(ip), port: uint32(port)}, nil
 	} else {
 		return nil, &net.AddrError{
 			Err:  "unsupported address type",
@@ -171,7 +171,7 @@ func setNonBlock(fd int) error {
 }
 
 func setReuseAddress(fd int) error {
-	if err := setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1); err != nil {
+	if err := sockopt_set_reuse_addr(fd, 1); err != nil {
 		// The runtime may not support the option; if that's the case and the
 		// address is already in use, binding the socket will fail and we will
 		// report the error then.

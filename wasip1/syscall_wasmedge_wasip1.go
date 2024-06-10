@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	AF_UNSPEC = iota
-	AF_INET
+	AF_INET = iota
 	AF_INET6
 	AF_UNIX
 )
@@ -57,6 +56,7 @@ type sockaddr interface {
 }
 
 type sockaddrInet4 struct {
+	kind uint32
 	addr [4]byte
 	port uint32
 	raw  addressBuffer
@@ -64,8 +64,8 @@ type sockaddrInet4 struct {
 
 func (s *sockaddrInet4) sockaddr() (unsafe.Pointer, error) {
 	s.raw.bufLen = 4
-	s.raw.buf = uintptr32(uintptr(unsafe.Pointer(&s.addr)))
-	return unsafe.Pointer(&s.raw), nil
+	s.raw.buf = uintptr32(uintptr(unsafe.Pointer(&s.kind)))
+	return unsafe.Pointer(s), nil
 }
 
 func (s *sockaddrInet4) sockport() int {
@@ -73,6 +73,7 @@ func (s *sockaddrInet4) sockport() int {
 }
 
 type sockaddrInet6 struct {
+	kind uint32
 	addr [16]byte
 	port uint32
 	zone uint32
@@ -84,7 +85,7 @@ func (s *sockaddrInet6) sockaddr() (unsafe.Pointer, error) {
 		return nil, syscall.ENOTSUP
 	}
 	s.raw.bufLen = 16
-	s.raw.buf = uintptr32(uintptr(unsafe.Pointer(&s.addr)))
+	s.raw.buf = uintptr32(uintptr(unsafe.Pointer(&s.kind)))
 	return unsafe.Pointer(&s.raw), nil
 }
 
@@ -128,13 +129,15 @@ type rawSockaddrAny struct {
 	addr   [126]byte
 }
 
+// poolfd is unused for now
+//
 //go:wasmimport wasi_snapshot_preview1 sock_open
 //go:noescape
-func sock_open(af int32, socktype int32, fd unsafe.Pointer) syscall.Errno
+func sock_open(poolfd int32, af int32, socktype int32, fd unsafe.Pointer) syscall.Errno
 
 //go:wasmimport wasi_snapshot_preview1 sock_bind
 //go:noescape
-func sock_bind(fd int32, addr unsafe.Pointer, port uint32) syscall.Errno
+func sock_bind(fd int32, addr unsafe.Pointer) syscall.Errno
 
 //go:wasmimport wasi_snapshot_preview1 sock_listen
 //go:noescape
@@ -142,23 +145,23 @@ func sock_listen(fd int32, backlog int32) syscall.Errno
 
 //go:wasmimport wasi_snapshot_preview1 sock_connect
 //go:noescape
-func sock_connect(fd int32, addr unsafe.Pointer, port uint32) syscall.Errno
+func sock_connect(fd int32, addr unsafe.Pointer) syscall.Errno
 
-//go:wasmimport wasi_snapshot_preview1 sock_getsockopt
+//go:wasmimport wasi_snapshot_preview1 sock_set_reuse_addr
 //go:noescape
-func sock_getsockopt(fd int32, level uint32, name uint32, value unsafe.Pointer, valueLen uint32) syscall.Errno
+func sock_set_reuse_addr(fd int32, isEnabled int32) syscall.Errno
 
-//go:wasmimport wasi_snapshot_preview1 sock_setsockopt
+//go:wasmimport wasi_snapshot_preview1 sock_set_broadcast
 //go:noescape
-func sock_setsockopt(fd int32, level uint32, name uint32, value unsafe.Pointer, valueLen uint32) syscall.Errno
+func sock_set_broadcast(fd int32, isEnabled int32) syscall.Errno
 
-//go:wasmimport wasi_snapshot_preview1 sock_getlocaladdr
+//go:wasmimport wasi_snapshot_preview1 sock_addr_local
 //go:noescape
-func sock_getlocaladdr(fd int32, addr unsafe.Pointer, port unsafe.Pointer) syscall.Errno
+func sock_addr_local(fd int32, addr unsafe.Pointer) syscall.Errno
 
-//go:wasmimport wasi_snapshot_preview1 sock_getpeeraddr
+//go:wasmimport wasi_snapshot_preview1 sock_addr_remote
 //go:noescape
-func sock_getpeeraddr(fd int32, addr unsafe.Pointer, port unsafe.Pointer) syscall.Errno
+func sock_addr_remote(fd int32, addr unsafe.Pointer) syscall.Errno
 
 //go:wasmimport wasi_snapshot_preview1 sock_recv_from
 //go:noescape
@@ -166,11 +169,9 @@ func sock_recv_from(
 	fd int32,
 	iovs unsafe.Pointer,
 	iovsCount int32,
-	addr unsafe.Pointer,
 	iflags int32,
-	port unsafe.Pointer,
+	addr unsafe.Pointer,
 	nread unsafe.Pointer,
-	oflags unsafe.Pointer,
 ) syscall.Errno
 
 //go:wasmimport wasi_snapshot_preview1 sock_send_to
@@ -203,7 +204,7 @@ func sock_shutdown(fd, how int32) syscall.Errno
 
 func socket(proto, sotype, unused int) (fd int, err error) {
 	var newfd int32
-	errno := sock_open(int32(proto), int32(sotype), unsafe.Pointer(&newfd))
+	errno := sock_open(0, int32(proto), int32(sotype), unsafe.Pointer(&newfd))
 	if errno != 0 {
 		return -1, errno
 	}
@@ -215,7 +216,7 @@ func bind(fd int, sa sockaddr) error {
 	if err != nil {
 		return err
 	}
-	errno := sock_bind(int32(fd), rawaddr, uint32(sa.sockport()))
+	errno := sock_bind(int32(fd), rawaddr)
 	runtime.KeepAlive(sa)
 	if errno != 0 {
 		return errno
@@ -235,7 +236,7 @@ func connect(fd int, sa sockaddr) error {
 	if err != nil {
 		return err
 	}
-	errno := sock_connect(int32(fd), rawaddr, uint32(sa.sockport()))
+	errno := sock_connect(int32(fd), rawaddr)
 	runtime.KeepAlive(sa)
 	if errno != 0 {
 		return errno
@@ -265,11 +266,9 @@ func recvfrom(fd int, iovs [][]byte, flags int32) (n int, addr rawSockaddrAny, p
 		int32(fd),
 		unsafe.Pointer(unsafe.SliceData(iovsBuf)),
 		int32(len(iovsBuf)),
-		unsafe.Pointer(&addrBuf),
 		flags,
-		unsafe.Pointer(&port),
+		unsafe.Pointer(&addrBuf),
 		unsafe.Pointer(&nread),
-		unsafe.Pointer(&oflags),
 	)
 	if errno != 0 {
 		return int(nread), addr, port, oflags, errno
@@ -318,18 +317,16 @@ func shutdown(fd, how int) error {
 	return nil
 }
 
-func getsockopt(fd, level, opt int) (value int, err error) {
-	var n int32
-	errno := sock_getsockopt(int32(fd), uint32(level), uint32(opt), unsafe.Pointer(&n), 4)
+func sockopt_set_broadcast(fd int, value int) error {
+	errno := sock_set_broadcast(int32(fd), int32(value))
 	if errno != 0 {
-		return 0, errno
+		return errno
 	}
-	return int(n), nil
+	return nil
 }
 
-func setsockopt(fd, level, opt int, value int) error {
-	var n = int32(value)
-	errno := sock_setsockopt(int32(fd), uint32(level), uint32(opt), unsafe.Pointer(&n), 4)
+func sockopt_set_reuse_addr(fd int, value int) error {
+	errno := sock_set_reuse_addr(int32(fd), int32(value))
 	if errno != 0 {
 		return errno
 	}
@@ -343,7 +340,7 @@ func getsockname(fd int) (sa sockaddr, err error) {
 		bufLen: uint32(unsafe.Sizeof(rsa)),
 	}
 	var port uint32
-	errno := sock_getlocaladdr(int32(fd), unsafe.Pointer(&buf), unsafe.Pointer(&port))
+	errno := sock_addr_local(int32(fd), unsafe.Pointer(&buf))
 	if errno != 0 {
 		return nil, errno
 	}
@@ -357,7 +354,7 @@ func getpeername(fd int) (sockaddr, error) {
 		bufLen: uint32(unsafe.Sizeof(rsa)),
 	}
 	var port uint32
-	errno := sock_getpeeraddr(int32(fd), unsafe.Pointer(&buf), unsafe.Pointer(&port))
+	errno := sock_addr_remote(int32(fd), unsafe.Pointer(&buf))
 	if errno != 0 {
 		return nil, errno
 	}
@@ -367,11 +364,11 @@ func getpeername(fd int) (sockaddr, error) {
 func anyToSockaddr(rsa *rawSockaddrAny, port uint32) (sockaddr, error) {
 	switch rsa.family {
 	case AF_INET:
-		addr := sockaddrInet4{port: port}
+		addr := sockaddrInet4{kind: AF_INET, port: port}
 		copy(addr.addr[:], rsa.addr[:])
 		return &addr, nil
 	case AF_INET6:
-		addr := sockaddrInet6{port: port}
+		addr := sockaddrInet6{kind: AF_INET6, port: port}
 		copy(addr.addr[:], rsa.addr[:])
 		return &addr, nil
 	case AF_UNIX:
