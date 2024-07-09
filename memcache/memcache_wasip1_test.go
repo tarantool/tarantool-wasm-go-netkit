@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func TestMemcache(t *testing.T) {

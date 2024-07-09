@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/containerd/ttrpc"
-	pb "github.com/stealthrocket/net/ttrpc"
-	"github.com/stealthrocket/net/wasip1"
+	pb "github.com/tarantool/tarantool-wasm-go-netkit/ttrpc"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 type helloService struct {

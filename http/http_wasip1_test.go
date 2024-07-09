@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	_ "github.com/stealthrocket/net/http"
-	"github.com/stealthrocket/net/wasip1"
+	_ "github.com/tarantool/tarantool-wasm-go-netkit/http"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func TestHTTP(t *testing.T) {

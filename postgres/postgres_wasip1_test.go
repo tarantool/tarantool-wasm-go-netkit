@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func TestPostgres(t *testing.T) {
@@ -19,7 +19,7 @@ func TestPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Here we configure a custom dialer for the postgres connector in order to
-	// use the dial functions from github.com/stealthrocket/net/wasip1.
+	// use the dial functions from github.com/tarantool/tarantool-wasm-go-netkit/wasip1.
 	config.DialFunc = wasip1.DialContext
 	// Avoid using the default net.LookupHost function which is not currently
 	// supported on GOOS=wasip1.

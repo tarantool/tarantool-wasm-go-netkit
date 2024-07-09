@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 	"golang.org/x/net/nettest"
 )
 

@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func init() {

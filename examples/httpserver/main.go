@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func main() {

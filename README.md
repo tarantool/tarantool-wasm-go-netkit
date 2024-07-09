@@ -1,20 +1,7 @@
-[![Build](https://github.com/stealthrocket/net/actions/workflows/build.yml/badge.svg)](https://github.com/stealthrocket/net/actions/workflows/build.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/stealthrocket/net.svg)](https://pkg.go.dev/github.com/stealthrocket/net)
-[![Apache 2 License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
-
-# net
+# tarantool-wasm-go-netkit
 
 This library provides `net.Dial` and `net.Listen` functions for
 [`GOOS=wasip1`][wasip1].
-
-Applications built with this library are compatible with [WasmEdge][wasmedge]
-and [wasi-go][wasi-go] such as [Timecraft][timecraft].
-
-[go-121]:    https://go.dev/blog/go1.21
-[timecraft]: https://github.com/stealthrocket/timecraft
-[wasi-go]:   https://github.com/stealthrocket/wasi-go
-[wasip1]:    https://tip.golang.org/doc/go1.21#wasip1
-[wasmedge]:  https://github.com/WasmEdge/WasmEdge
 
 _Note: `GOOS=wasip1` requires [Go 1.21][go-121]._
 
@@ -38,10 +25,10 @@ network stack via `init` functions called on package imports. This model is
 currently supported for `http` and `mysql` with those imports:
 
 ```go
-import _ "github.com/stealthrocket/net/http"
+import _ "github.com/tarantool/tarantool-wasm-go-netkit/http"
 ```
 ```go
-import _ "github.com/stealthrocket/net/mysql"
+import _ "github.com/tarantool/tarantool-wasm-go-netkit/mysql"
 ```
 
 When imported, those packages alter the default configuration to install a
@@ -81,7 +68,7 @@ first constructing a listener and passing it to the server's `Serve` method:
 import (
     "net/http"
 
-    "github.com/stealthrocket/net/wasip1"
+    "github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func main() {
@@ -113,7 +100,7 @@ The pure Go name resolver is the default for `GOOS=wasip1`.
 All you need is the following import somewhere in your application:
 
 ```go
-import _ "github.com/stealthrocket/net/wasip1"
+import _ "github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 ```
 
 The library will then automatically configure the `net.DefaultResolver`.

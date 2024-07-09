@@ -1,9 +1,9 @@
-module github.com/stealthrocket/net/grpc
+module github.com/tarantool/tarantool-wasm-go-netkit/grpc
 
 go 1.21
 
 require (
-	github.com/stealthrocket/net v0.2.1
+	github.com/tarantool/tarantool-wasm-go-netkit v0.0.0-20240709091409-5a310d011617
 	google.golang.org/grpc v1.56.3
 	google.golang.org/protobuf v1.33.0
 )

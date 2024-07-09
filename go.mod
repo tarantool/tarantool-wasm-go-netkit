@@ -1,4 +1,4 @@
-module github.com/mkokryashkin/net
+module github.com/tarantool/tarantool-wasm-go-netkit
 
 go 1.21
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/stealthrocket/net/wasip1"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 )
 
 func TestRedis(t *testing.T) {

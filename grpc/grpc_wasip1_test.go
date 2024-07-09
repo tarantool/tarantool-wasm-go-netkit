@@ -8,8 +8,8 @@ import (
 	"net"
 	"testing"
 
-	pb "github.com/stealthrocket/net/grpc"
-	"github.com/stealthrocket/net/wasip1"
+	pb "github.com/tarantool/tarantool-wasm-go-netkit/grpc"
+	"github.com/tarantool/tarantool-wasm-go-netkit/wasip1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
