@@ -1,70 +1,66 @@
-//go:build wasip1 && !getaddrinfo
+//go:build wasip1
 
 package wasip1
 
 import (
 	"context"
 	"net"
+	"os"
+	"unsafe"
 )
 
 func lookupAddr(ctx context.Context, op, network, address string) ([]net.Addr, error) {
+	var hints wasiAddrInfoHints
+
 	switch network {
 	case "tcp", "tcp4", "tcp6":
+		hints.socktype = SOCK_STREAM
 	case "udp", "udp4", "udp6":
+		hints.socktype = SOCK_DGRAM
 	case "unix", "unixgram":
 		return []net.Addr{&net.UnixAddr{Name: address, Net: network}}, nil
 	default:
 		return nil, net.UnknownNetworkError(network)
 	}
 
-	hostname, service, err := net.SplitHostPort(address)
-	if err != nil {
-		return nil, net.InvalidAddrError(address)
-	}
-
-	port, err := net.DefaultResolver.LookupPort(ctx, network, service)
-	if err != nil {
-		return nil, err
-	}
-
-	if hostname == "" {
-		if op == "listen" {
-			switch network {
-			case "udp", "udp4":
-				return []net.Addr{&net.UDPAddr{IP: net.IPv4zero, Port: port}}, nil
-			case "tcp", "tcp4":
-				return []net.Addr{&net.TCPAddr{IP: net.IPv4zero, Port: port}}, nil
-			case "udp6":
-				return []net.Addr{&net.UDPAddr{IP: net.IPv6zero, Port: port}}, nil
-			case "tcp6":
-				return []net.Addr{&net.TCPAddr{IP: net.IPv6zero, Port: port}}, nil
-			}
-		}
-		return nil, net.InvalidAddrError(address)
-	}
-
-	ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
-	if err != nil {
-		return nil, err
-	}
-
-	addrs := make([]net.Addr, 0, len(ipAddrs))
 	switch network {
-	case "tcp", "tcp4", "tcp6":
-		for _, ipAddr := range ipAddrs {
-			addrs = append(addrs, &net.TCPAddr{
-				IP:   ipAddr.IP,
-				Zone: ipAddr.Zone,
-				Port: port,
-			})
+	case "tcp", "udp":
+		hints.family = AF_INET
+	case "tcp4", "udp4":
+		hints.family = AF_INET
+	case "tcp6", "udp6":
+		hints.family = AF_INET6
+	}
+
+	hostname, service, err := net.SplitHostPort(address)
+	results := make([]wasiAddrInfo, 8)
+	n, err := getaddrinfo(hostname, service, &hints, results)
+	if err != nil {
+		addr := &netAddr{network, address}
+		return nil, newOpError(op, addr, os.NewSyscallError("getaddrinfo", err))
+	}
+
+	addrs := make([]net.Addr, 0, n)
+	for _, r := range results[:n] {
+		var ip net.IP
+		var port int
+		addrPtr := unsafe.Pointer(unsafe.SliceData(r.addrBuf[:]))
+		switch r.sockkind {
+		case AF_INET:
+			addrIP4 := *(*wasiAddrIP4Port)(addrPtr)
+			ip = addrIP4.IPBuf[:]
+			port = int(addrIP4.port)
+		case AF_INET6:
+			addrIP6 := *(*wasiAddrIP6Port)(addrPtr)
+			ip = addrIP6.IPBuf[:]
+			port = int(addrIP6.port)
 		}
-	case "udp", "udp4", "udp6":
-		for _, ipAddr := range ipAddrs {
-			addrs = append(addrs, &net.UDPAddr{
-				IP:   ipAddr.IP,
-				Zone: ipAddr.Zone,
-				Port: port,
-			})
+
+		switch network {
+		case "tcp", "tcp4", "tcp6":
+			addrs = append(addrs, &net.TCPAddr{IP: ip, Port: port})
+		case "udp", "udp4", "udp6":
+			addrs = append(addrs, &net.UDPAddr{IP: ip, Port: port})
 		}
 	}
 	if len(addrs) != 0 {
