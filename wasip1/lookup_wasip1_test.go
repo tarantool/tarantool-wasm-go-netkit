@@ -116,7 +116,7 @@ func TestLookupAddr(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.op+" "+test.network+" "+test.address, func(t *testing.T) {
-			addrs, err := lookupAddr(context.Background(), test.op, test.network, test.address)
+			addrs, err := LookupAddr(context.Background(), test.op, test.network, test.address)
 			if !errors.Is(err, test.err) {
 				t.Errorf("errors mismatch:\nwant = %v\ngot  = %v", test.err, err)
 			}

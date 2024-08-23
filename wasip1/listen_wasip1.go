@@ -20,7 +20,7 @@ func Listen(network, address string) (net.Listener, error) {
 	default:
 		return nil, unsupportedNetwork(network, address)
 	}
-	addrs, err := lookupAddr(context.Background(), "listen", network, address)
+	addrs, err := LookupAddr(context.Background(), "listen", network, address)
 	if err != nil {
 		addr := &netAddr{network, address}
 		return nil, listenErr(addr, err)
@@ -39,7 +39,7 @@ func ListenPacket(network, address string) (net.PacketConn, error) {
 	default:
 		return nil, unsupportedNetwork(network, address)
 	}
-	addrs, err := lookupAddr(context.Background(), "listen", network, address)
+	addrs, err := LookupAddr(context.Background(), "listen", network, address)
 	if err != nil {
 		addr := &netAddr{network, address}
 		return nil, listenErr(addr, err)

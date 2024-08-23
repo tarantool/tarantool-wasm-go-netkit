@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-func lookupAddr(ctx context.Context, op, network, address string) ([]net.Addr, error) {
+func LookupAddr(ctx context.Context, op, network, address string) ([]net.Addr, error) {
 	var hints wasiAddrInfoHints
 
 	switch network {
